@@ -58,6 +58,22 @@ services:
       - key: HERMES_DASHBOARD_TUI
         value: "1"
 
+      # Hermes >=v0.16.0 refuses to bind the dashboard on 0.0.0.0 unless
+      # an auth provider is registered (there's no unauthenticated
+      # public-bind option). The boot-time patcher writes these into
+      # config.yaml's dashboard.basic_auth before the dashboard starts.
+      # HASH must be produced by the image's own hash_password() helper,
+      # never a plaintext password:
+      #   docker run --rm --entrypoint python docker.io/nousresearch/hermes-agent:<tag> \
+      #     -c "from plugins.dashboard_auth.basic import hash_password; print(hash_password('...'))"
+      # <tag> must match the HERMES_IMAGE currently pinned in the Dockerfile.
+      # Leave both unset and the dashboard stays refusing to bind (safe
+      # default) until you set them from the Environment tab.
+      - key: HERMES_DASHBOARD_BASIC_AUTH_USER
+        sync: false
+      - key: HERMES_DASHBOARD_BASIC_AUTH_HASH
+        sync: false
+
       # Generated once at first deploy. Reuse this value as API_SERVER_KEY
       # in the dashboard if you later opt into the OpenAI-compatible API
       # server (API_SERVER_ENABLED=true).

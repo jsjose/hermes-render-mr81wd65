@@ -25,3 +25,33 @@ class PatchConfigTests(unittest.TestCase):
         render_entry = patch_config._render_entry()
 
         self.assertNotIn("tools", render_entry)
+
+    def test_ensure_dashboard_basic_auth_inserts_when_missing_and_creds_provided(self):
+        patch_config = load_patch_config()
+        config: dict = {}
+
+        changed = patch_config.ensure_dashboard_basic_auth(config, "admin", "hashed-value")
+
+        self.assertTrue(changed)
+        self.assertEqual(
+            config["dashboard"]["basic_auth"],
+            {"username": "admin", "password_hash": "hashed-value"},
+        )
+
+    def test_ensure_dashboard_basic_auth_noop_when_creds_missing(self):
+        patch_config = load_patch_config()
+        config: dict = {}
+
+        changed = patch_config.ensure_dashboard_basic_auth(config, None, None)
+
+        self.assertFalse(changed)
+        self.assertNotIn("dashboard", config)
+
+    def test_ensure_dashboard_basic_auth_does_not_overwrite_existing(self):
+        patch_config = load_patch_config()
+        config = {"dashboard": {"basic_auth": {"username": "keep-me", "password_hash": "keep-hash"}}}
+
+        changed = patch_config.ensure_dashboard_basic_auth(config, "admin", "hashed-value")
+
+        self.assertFalse(changed)
+        self.assertEqual(config["dashboard"]["basic_auth"]["username"], "keep-me")

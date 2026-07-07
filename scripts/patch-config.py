@@ -1,7 +1,7 @@
 #!/opt/hermes/.venv/bin/python
 """Idempotent patcher for Hermes' ~/.hermes/config.yaml on Render.
 
-Adds two things the first time it runs against a given config.yaml:
+Adds up to three things the first time it runs against a given config.yaml:
   1. mcp_servers.render -- HTTP MCP server pointed at mcp.render.com,
      authenticated via the RENDER_MCP_API_KEY env var. Hermes supports
      ${VAR} substitution in headers, so the key is resolved lazily at
@@ -20,6 +20,15 @@ Adds two things the first time it runs against a given config.yaml:
        - /opt/render-tools/skills-upstream (pinned render-oss/skills)
      The local overlay is listed first so its skill names win on collision.
 
+  3. dashboard.basic_auth -- only when both HERMES_DASHBOARD_BASIC_AUTH_USER
+     and HERMES_DASHBOARD_BASIC_AUTH_HASH are set in the environment.
+     Hermes >=v0.16.0 refuses to bind the dashboard on a non-loopback
+     address unless an auth provider is registered, so on Render (which
+     needs 0.0.0.0) this must be configured before the dashboard starts.
+     HASH is a password hash produced by the image's own
+     plugins.dashboard_auth.basic.hash_password() -- never a plaintext
+     password.
+
 The patcher is INSERT-only by design. If either key already exists
 (even pointing somewhere different), it leaves it alone. This means:
   - Re-running the patcher on every boot is safe.
@@ -31,6 +40,7 @@ Uses PyYAML, which ships with Hermes' .venv.
 """
 from __future__ import annotations
 
+import os
 import sys
 from pathlib import Path
 
@@ -121,6 +131,35 @@ def ensure_external_skill_dirs(config: dict) -> list[str]:
     return added
 
 
+def ensure_dashboard_basic_auth(
+    config: dict, username: str | None, password_hash: str | None
+) -> bool:
+    """Insert dashboard.basic_auth if missing and both creds are provided.
+
+    Insert-only, like the other ensure_* helpers: an existing
+    dashboard.basic_auth entry (from a prior boot or a manual dashboard
+    edit) is never overwritten. If either credential is unset, this is a
+    no-op -- the dashboard keeps refusing to bind on non-loopback
+    addresses until an operator supplies both via the Environment tab.
+    """
+    if not username or not password_hash:
+        return False
+    dashboard = config.get("dashboard")
+    if dashboard is None:
+        dashboard = {}
+        config["dashboard"] = dashboard
+    elif not isinstance(dashboard, dict):
+        print(
+            "[render-tools] dashboard is not a mapping; skipping basic_auth",
+            file=sys.stderr,
+        )
+        return False
+    if "basic_auth" in dashboard:
+        return False
+    dashboard["basic_auth"] = {"username": username, "password_hash": password_hash}
+    return True
+
+
 def save_config(path: Path, config: dict) -> None:
     text = yaml.safe_dump(
         config,
@@ -142,13 +181,20 @@ def main() -> int:
     config = load_config(path)
     changed_mcp = ensure_render_mcp(config)
     added_dirs = ensure_external_skill_dirs(config)
-    if changed_mcp or added_dirs:
+    changed_auth = ensure_dashboard_basic_auth(
+        config,
+        os.environ.get("HERMES_DASHBOARD_BASIC_AUTH_USER"),
+        os.environ.get("HERMES_DASHBOARD_BASIC_AUTH_HASH"),
+    )
+    if changed_mcp or added_dirs or changed_auth:
         save_config(path, config)
         parts = []
         if changed_mcp:
             parts.append("mcp_servers.render")
         for dir_path in added_dirs:
             parts.append(f"skills.external_dirs += {dir_path}")
+        if changed_auth:
+            parts.append("dashboard.basic_auth")
         print(f"[render-tools] patched {path}: {', '.join(parts)}")
     else:
         print(f"[render-tools] {path} already has render MCP + skill dirs; nothing to do")
