@@ -45,17 +45,19 @@ Fuera de alcance (fase 1): gateway a Telegram/Discord/Slack, API server OpenAI-c
 - [x] Redeploy → **éxito**: `Detected service running on port 10000`. Dashboard bindea correctamente con el auth-gate satisfecho.
 - [x] Confirmar login con usuario/password en el dashboard → **funciona**, pero hay un bug de Hermes v2026.7.1: la raíz redirige a `/auth/login?provider=basic&next=%2F` (flujo OAuth) y crashea con `NotImplementedError` para proveedores password-only. Workaround: entrar directo a `/login`.
 - [x] **Incidente de seguridad:** el hash real de `HERMES_DASHBOARD_BASIC_AUTH_HASH` se commiteó por error en `.env.example` (commit `ce493bc`, ya pusheado a un repo público). Password rotada (nuevo hash generado y actualizado en Render + `config.yaml` a mano vía Shell) e historial de git reescrito (squash de `ce493bc`+`904fcd9`) para retirar el secreto del historial antes de un nuevo push. Repo sin colaboradores, así que el force-push no rompe clones ajenos.
-- [ ] Reintentar tab "Provider Login (OAuth)" → Nous Portal
-- [ ] Tab "LLM Provider" → confirmar Nous Portal como proveedor activo y `base_url: https://inference-api.nousresearch.com/v1`
-- [ ] Tab "Config" → fijar el campo `model`
-- [ ] Tab "Status" → confirmar gateway "running" y modelo alcanzable
-- [ ] Probar una conversación simple desde el tab "Chat"
+- [x] Tab "Provider Login (OAuth)" seguía roto (`Session token not available`) por el mismo motivo: en modo gated (`auth_required`), `__HERMES_SESSION_TOKEN__` no se inyecta a propósito (la SPA usa cookies) y ese flujo concreto de login de proveedor no contempla ese modo — bug/gap de esta versión, no algo configurable. Workaround: login por CLI vía Shell, que no depende del JS del navegador: `hermes portal login` → device-code flow (URL + código), **login correcto**. Auth guardada en `/opt/data/auth.json`.
+- [x] Modelo y proveedor configurados automáticamente por `hermes portal login`: `model.provider=nous`, modelo por defecto `google/gemini-3.5-flash`, Tool Gateway habilitado (web search/Firecrawl, imágenes/FAL, STT/Whisper, TTS/OpenAI, browser automation) — todo vía `config.yaml`
+- [x] Tab "Status" → confirmado, muestra la conexión a Nous Portal y el gateway operativo
+- [x] Conversación de prueba confirmada por el usuario
 
 ### 4. Render MCP
-- [ ] Pegar `RENDER_MCP_API_KEY` en el tab Environment del dashboard de Hermes
-- [ ] Confirmar en el tab Status que el MCP server aparece registrado
+- [x] `RENDER_MCP_API_KEY` generada en dashboard.render.com y pegada en el tab Environment de **Render** (no el de Hermes)
+- [x] Restart del gateway tras añadir la key
+- [x] Confirmado que el MCP server `render` está registrado y habilitado — el tab "Status"/"MCP" del dashboard no lo mostraba (otro bug de UI de esta versión), pero `hermes mcp list` por CLI confirma `render ... all ... ✓ enabled`. El tab MCP del dashboard sí lo mostró tras un reinicio.
 - [ ] Probar una tool de solo lectura primero (ej. `mcp_render_list_services` o `mcp_render_get_metrics`)
 - [ ] Revisar qué tools quedan expuestas (no hay filtro `tools.include` por defecto en este template — el agente ve el catálogo completo permitido por la key)
+
+**Incidente de capacidad:** el servicio se reinició por exceder el límite de memoria de `plan: starter` (dashboard + gateway + MCP + Tool Gateway de Nous simultáneos). Se decide subir a `plan: standard` (más RAM) — coste mayor, confirmado explícitamente por el usuario. `render.yaml` actualizado; pendiente commit/push y redeploy.
 
 ### 5. Seguridad (bloqueante antes de compartir la URL)
 - [ ] Restringir acceso al dashboard: bearer token / IP allowlist / Render private service — **posible que ya quede cubierto** por el auth-gate nativo de Hermes ≥v0.16.0 (`dashboard.basic_auth`, ver punto 3); evaluar si basta o si se quiere una capa adicional
