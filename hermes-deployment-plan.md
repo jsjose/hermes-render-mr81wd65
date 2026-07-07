@@ -19,23 +19,26 @@ Fuera de alcance (fase 1): gateway a Telegram/Discord/Slack, API server OpenAI-c
 ## Pasos
 
 ### 1. Cuenta y credenciales
-- [ ] Crear cuenta en portal.nousresearch.com
-- [ ] Generar API key de Nous Portal
-- [ ] Guardar la key en un gestor de secretos local (no en el repo)
+- [x] Crear cuenta en portal.nousresearch.com
+- [x] Generar API key de Nous Portal
+- [x] Guardar la key en un gestor de secretos local (no en el repo)
 
 ### 2. Deploy en Render
 - [x] Corregir `render.yaml`: `region: frankfurt` (minúsculas), confirmar `plan` deseado — verificado en `render.yaml`; se decide `plan: starter` (más barato, always-on, soporta disco; se puede subir a standard después sin perder el disco)
 - [x] Verificar en el `Dockerfile` que `HERMES_HOME=/opt/data` (o que coincide con `disk.mountPath`) — default en `bootstrap.sh` coincide con `disk.mountPath`
 - [x] Verificar que `/api/status` existe en la imagen antes de confiar en `healthCheckPath` — confirmado en README (depende de `HERMES_DASHBOARD=1`, ya seteado)
 - [x] Generar `RENDER_MCP_API_KEY` — Render no permite scoping de permisos por key (hereda el rol completo del usuario que la genera); se acepta el riesgo de key full-access, mitigado con rotación frecuente y revisión de logs (ver Riesgos conocidos)
-- [ ] Render Dashboard → Blueprints → New Blueprint Instance → apuntar al repo
-- [ ] Confirmar deploy (build ~3-5 min por el pull de la imagen base)
-- [ ] Revisar logs de arranque (`hermes doctor` si algo falla)
+- [x] Render Dashboard → Blueprints → New Blueprint Instance → apuntar al repo
+- [x] Confirmar deploy (build ~3-5 min por el pull de la imagen base)
+- [x] Revisar logs de arranque — warnings de "no messaging platforms/allowlists" son esperados (fuera de alcance fase 1); pendiente confirmar ausencia de `Traceback` o `config patch failed` y estado "Live" en Render
 
 ### 3. Configuración del agente
-- [ ] Abrir dashboard de Hermes (URL del servicio Render)
-- [ ] Tab "API Keys" → configurar `NOUS_API_KEY` (o proveedor equivalente)
-      base_url: https://inference-api.nousresearch.com/v1
+- [x] Abrir dashboard de Hermes (URL del servicio Render)
+- [x] Intentar login OAuth a Nous Portal desde tab "Provider Login (OAuth)" → falló: "Hermes Agent session key minting has been retired". Causa: imagen pineada `v2026.5.7` es anterior al flujo "Quick Setup via Nous Portal" (introducido en upstream `v0.17.0` / `2026.6.19`)
+- [x] Bump `HERMES_IMAGE` en `Dockerfile` a `v2026.7.1` (última tag en Docker Hub) — pendiente commit/push y redeploy manual (`autoDeployTrigger: off`)
+- [ ] Redeploy en Render tras el push y reintentar tab "Provider Login (OAuth)" → Nous Portal
+- [ ] Tab "LLM Provider" → confirmar Nous Portal como proveedor activo y `base_url: https://inference-api.nousresearch.com/v1`
+- [ ] Tab "Config" → fijar el campo `model`
 - [ ] Tab "Status" → confirmar gateway "running" y modelo alcanzable
 - [ ] Probar una conversación simple desde el tab "Chat"
 
