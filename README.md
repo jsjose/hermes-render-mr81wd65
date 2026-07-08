@@ -328,6 +328,7 @@ Skip the public internet entirely. Run Tailscale on a sidecar (or use Render's [
 - These options compose. For example, an auth gateway can still sit behind a private network path.
 - The OpenAI-compatible API server (`API_SERVER_ENABLED=true`) is separate from the dashboard. It uses a bearer token (`API_SERVER_KEY`), so it's safe to expose with a long random key, but this Blueprint doesn't route it publicly.
 - For broader Hermes security guidance see the [upstream security doc](https://github.com/NousResearch/hermes-agent/blob/main/website/docs/user-guide/security.md).
+- Hermes ≥v0.16.0 ships its own dashboard auth gate (`dashboard.basic_auth` / OAuth) and refuses to bind on a non-loopback address until one is configured — see `scripts/patch-config.py` and the `HERMES_DASHBOARD_BASIC_AUTH_USER`/`HASH` vars in `render.yaml`. This deployment uses that native gate (password auth) instead of Option A/B above. For who has access and how to rotate credentials, see [`docs/access-and-rotation.md`](docs/access-and-rotation.md).
 
 ## What this template does and doesn't do
 

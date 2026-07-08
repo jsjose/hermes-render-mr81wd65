@@ -69,10 +69,10 @@ Fuera de alcance (fase 1): gateway a Telegram/Discord/Slack, API server OpenAI-c
 
 ### 5. Seguridad (bloqueante antes de compartir la URL)
 
-- [ ] Restringir acceso al dashboard: bearer token / IP allowlist / Render private service — **posible que ya quede cubierto** por el auth-gate nativo de Hermes ≥v0.16.0 (`dashboard.basic_auth`, ver punto 3); evaluar si basta o si se quiere una capa adicional
-- [ ] Confirmar que las API keys no quedan visibles en logs públicos
-- [ ] Documentar en README quién tiene acceso y cómo rotar credenciales
-- [ ] `RENDER_MCP_API_KEY` es full-access (riesgo aceptado); confirmar rotación periódica programada y acceso a logs para detectar uso anómalo
+- [x] Restringir acceso al dashboard → decidido: el `basic_auth` nativo de Hermes ≥v0.16.0 es suficiente (uso en solitario, sin colaboradores); no se añade IP allowlist/private service por ahora
+- [x] Confirmar que las API keys no quedan visibles en logs públicos → revisados todos los logs de arranque durante el despliegue, ningún secreto en texto plano; Hermes redacta secretos por defecto (`security.redact_secrets`)
+- [x] Documentado en `docs/access-and-rotation.md`: quién tiene acceso y procedimiento de rotación (dashboard password, `RENDER_MCP_API_KEY`, auth de Nous Portal)
+- [x] `RENDER_MCP_API_KEY` full-access (riesgo aceptado); cadencia de rotación recomendada (90 días) documentada en `docs/access-and-rotation.md`
 
 ### 6. Validación final
 
