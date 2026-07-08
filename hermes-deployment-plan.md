@@ -84,6 +84,7 @@ Fuera de alcance (fase 1): gateway a Telegram/Discord/Slack, API server OpenAI-c
 
 - Evaluar Tool Gateway de Nous (web search, imágenes, TTS) si el caso de uso lo requiere.
 - Evaluar gateway a Telegram/Discord/Slack.
+- Automatizar backup off-site de Hermes (cron + storage externo) — ver `docs/backup.md`. Backup manual ocasional es suficiente por ahora; también anotado como tarea en el kanban de Hermes.
 
 ## Riesgos conocidos
 
