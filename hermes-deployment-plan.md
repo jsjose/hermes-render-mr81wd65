@@ -76,9 +76,9 @@ Fuera de alcance (fase 1): gateway a Telegram/Discord/Slack, API server OpenAI-c
 
 ### 6. Validación final
 
-- [ ] Reinicio del servicio → confirmar que sesión/memoria persiste (disco persistente)
-- [ ] Confirmar que el modelo configurado responde tras un redeploy
-- [ ] Confirmar que una tool MCP sigue funcionando tras el redeploy
+- [x] Redeploy de prueba → confirmado por el usuario: funciona perfectamente. Sesión/memoria persiste (disco), modelo responde, MCP sigue operativo tras el redeploy.
+
+**Fase 1 completa.**
 
 ## Fase futura (no ahora)
 
