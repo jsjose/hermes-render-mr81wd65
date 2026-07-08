@@ -41,6 +41,11 @@ Repo: hermes-render-mr81wd65 (fork de render-examples/hermes-render).
 - `RENDER_MCP_API_KEY` es full-access: Render no soporta API keys con permisos acotados (la key hereda el rol completo del usuario que la genera; el único scoping real posible sería generarla desde una cuenta colaboradora con rol limitado, descartado por ahora). Riesgo aceptado explícitamente — mitigar con rotación periódica y revisión de logs, no asumir que la key está acotada. El template tampoco filtra qué tools MCP puede usar el agente.
 - Toda tool MCP nueva se prueba primero en modo lectura (list/get) antes de habilitar acciones destructivas o de escritura.
 
+## Operación vía Shell de Render
+
+- Render conecta la Shell como `root`. Cualquier comando `hermes ...` ejecutado a mano ahí debe correr como el usuario `hermes` (`su hermes -c "hermes ..."` o equivalente), nunca directamente como root — si no, deja archivos root-owned en `/opt/data` (disco persistente) que el proceso del gateway (que sí corre como `hermes`) no puede leer/escribir, y el agente falla al arrancar con `Permission denied`. Ya pasó con `/opt/data/shared/` tras un `hermes portal login` corrido como root.
+- Tras cualquier intervención manual en el disco vía Shell, verificar dueño/permisos con `ls -la` antes de dar por bueno un redeploy.
+
 ## render.yaml
 
 - `region` siempre en minúsculas (`frankfurt`, `oregon`, etc.) — el schema de Render lo exige.
